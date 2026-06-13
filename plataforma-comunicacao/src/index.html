@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IFConnect</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- BARRA DE PROGRESSO -->
+<div id="loading-bar"></div>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="sp-logo">IF<span>Connect</span></div>
+  <div class="sp-sub">Conectando o campus...</div>
+  <div class="sp-spin"></div>
+</div>
+
+<!-- TELA DE SUSPENSÃO/BAN -->
+<div id="ban-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:999;align-items:center;justify-content:center;padding:20px">
+  <div class="vcard" style="max-width:420px;text-align:center">
+    <div style="font-size:56px;margin-bottom:12px" id="ban-icon">🚫</div>
+    <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px" id="ban-title">Conta Suspensa</div>
+    <div style="color:var(--t2);font-size:14px;line-height:1.7;margin-bottom:20px" id="ban-msg">Sua conta foi suspensa temporariamente.</div>
+    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px;margin-bottom:20px;font-size:13px;color:var(--t3)" id="ban-detail"></div>
+    <button class="btn btn-o" onclick="AUTH&&AUTH.signOut();location.reload()">Sair da conta</button>
+  </div>
+</div>
+
+<!-- EMAIL VERIFY -->
+<div id="verify-screen">
+  <div class="vcard">
+    <div style="font-size:44px;margin-bottom:10px">📧</div>
+    <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:6px">Verifique seu E-mail</div>
+    <div style="color:var(--t2);font-size:13px;margin-bottom:4px">Enviamos um link de verificação para</div>
+    <div style="font-weight:600;font-size:14px;color:var(--g);margin-bottom:18px" id="verify-email-show">-</div>
+    <div style="font-size:13px;color:var(--t2);text-align:center;margin-bottom:20px;line-height:1.7;padding:0 8px">
+      📬 Abra seu email e clique no link <strong>"Verificar endereço de email"</strong>.<br>
+      Depois, volte aqui e clique no botão abaixo.
+      <div style="margin-top:12px;background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:12px 14px;font-size:13px;color:#856404;text-align:left;line-height:1.5">
+        ⚠️ <strong>Não encontrou o email?</strong><br>
+        O email do IFConnect <strong>quase sempre vai para a pasta SPAM ou Lixo Eletrônico</strong>.<br>
+        Verifique essa pasta <strong>antes</strong> de clicar em "Reenviar link".
+      </div>
+    </div>
+    <div class="err" id="verr" style="display:none;margin-bottom:12px">Email ainda não verificado. Clique no link que enviamos e tente novamente.</div>
+    <button class="btn" onclick="doVerify()">✅ Já verifiquei meu email</button>
+    <div style="margin-top:14px;font-size:13px;color:var(--t3)">
+      Não recebeu? <span style="color:var(--g);cursor:pointer;font-weight:600" onclick="resendCode()">Reenviar link</span>
+    </div>
+  </div>
+</div>
+
+<!-- AUTH -->
+<div id="auth">
+  <div class="acard">
+    <div class="logo"><div class="logo-icon">IF</div><div class="logo-text">IF<span>Connect</span></div></div>
+    <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:700;margin-bottom:5px" id="atitle">Bem-vindo de volta 👋</div>
+    <div style="color:var(--t2);font-size:13px;margin-bottom:18px" id="asub">Entre na sua conta para continuar</div>
+    <div class="tabs">
+      <div class="tab on" onclick="stab('login')">Entrar</div>
+      <div class="tab" onclick="stab('reg')">Criar conta</div>
+    </div>
+    <!-- LOGIN -->
+    <div id="lf">
+      <div class="fg"><label class="fl">E-mail ou @usuário</label><input class="fi" type="text" id="le" placeholder="ex: nome@gmail.com ou @nome"></div>
+      <div class="fg"><label class="fl">Senha</label><input class="fi" type="password" id="lp" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="err" id="lerr">E-mail/@usuário ou senha incorretos.</div>
+      <button class="btn" onclick="doLogin()">Entrar</button>
+      <div style="display:flex;align-items:center;gap:10px;margin:14px 0">
+        <div style="flex:1;height:1px;background:var(--bd)"></div>
+        <span style="font-size:12px;color:var(--t3)">ou</span>
+        <div style="flex:1;height:1px;background:var(--bd)"></div>
+      </div>
+      <button class="btn-google" onclick="doGoogleLogin()">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Entrar com Google
+      </button>
+      <div style="text-align:center;margin-top:14px;font-size:13px;color:var(--t3)">
+        <span style="color:var(--g);cursor:pointer;font-weight:600" onclick="showResetPwd()">Esqueci minha senha</span>
+      </div>
+    </div>
+    <!-- REGISTER -->
+    <div id="rf" style="display:none">
+      <div class="fg"><label class="fl">Nome completo</label><input class="fi" type="text" id="rn" placeholder="João Silva"></div>
+      <div class="fg">
+        <label class="fl">@usuário</label>
+        <input class="fi" type="text" id="rh" placeholder="joaosilva" oninput="checkHandle()">
+        <div class="handle-check" id="hcheck"></div>
+      </div>
+      <div class="fg">
+        <label class="fl">E-mail da conta</label>
+        <input class="fi" type="email" id="re" placeholder="ex: nome@gmail.com" oninput="checkEmail()">
+        <div class="handle-check" id="echeck"></div>
+        <div class="inst-email-warn" id="inst-email-warn">
+          ⚠️ <strong>E-mail institucional detectado!</strong><br>
+          E-mails <code>@if...</code> frequentemente <strong>não recebem</strong> emails de verificação.
+        </div>
+      </div>
+      <div class="fg">
+        <label class="fl">Campus IFPB *</label>
+        <select class="fi" id="rcampus"><option value="">Carregando campi...</option></select>
+      </div>
+      <div class="fg">
+        <label class="fl">Curso / Turma</label>
+        <select class="fi" id="rc"><option value="">Carregando cursos...</option></select>
+      </div>
+      <div class="fg">
+        <label class="fl">Cargo</label>
+        <select class="fi" id="rrole" onchange="onRoleChange()">
+          <option value="aluno">Aluno (Discente)</option>
+          <option value="professor">Professor (Docente)</option>
+          <option value="admin">Admin (Moderador)</option>
+        </select>
+      </div>
+      <div class="role-code-box" id="role-code-box">
+        <label class="fl" id="role-code-label">🔐 Código de autorização</label>
+        <input class="fi" type="password" id="rrcode" placeholder="Insira o código de acesso">
+        <div style="font-size:11px;color:var(--t3);margin-top:5px">Necessário para cargos especiais.</div>
+      </div>
+      <div class="fg"><label class="fl">Senha</label><input class="fi" type="password" id="rp" placeholder="Mínimo 6 caracteres"></div>
+      <div class="err" id="rerr"></div>
+      <button class="btn" onclick="doReg()">Criar conta</button>
+    </div>
+    <!-- RESET PASSWORD -->
+    <div id="rpf" style="display:none">
+      <div class="warn-box">🔑 Informe seu e-mail para receber o link de redefinição.</div>
+      <div class="fg"><label class="fl">E-mail cadastrado</label><input class="fi" type="email" id="rpe" placeholder="seu@email.com" onkeydown="if(event.key==='Enter')doResetStep()"></div>
+      <div id="rp-code-box" style="display:none"></div>
+      <div class="err" id="rperr"></div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn" id="rp-btn" onclick="doResetStep()">Enviar link de recuperação</button>
+        <button class="btn btn-o" onclick="stab('login')" style="width:auto;padding:12px 16px">Voltar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <nav class="nav">
+    <div class="nav-logo" onclick="go('feed')">IF<span>Connect</span></div>
+    <div class="nav-r">
+      <button class="nav-btn" onclick="togTheme()" title="Alternar tema" id="theme-btn">
+        <svg class="theme-icon icon-sun" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <svg class="theme-icon icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <!-- SININHO DE NOTIFICAÇÕES -->
+      <button class="nav-btn" onclick="openNotifPanel()" title="Notificações" id="notif-btn" style="position:relative">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <span class="nav-chat-badge" id="notif-badge" style="display:none">0</span>
+      </button>
+      <button class="nav-btn" onclick="go('chat')" id="nav-chat-btn" style="position:relative">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span class="nav-chat-badge" id="nav-chat-badge" style="display:none">0</span>
+      </button>
+      <div class="av" id="nav-av" onclick="go('profile')">?</div>
+    </div>
+  </nav>
+
+  <div class="mc">
+    <!-- FEED -->
+    <div class="pg on" id="pg-feed">
+      <div class="ftabs" id="feed-ftabs">
+        <button class="ftab on" onclick="setFeedTab('all',this)">🏠 Todos</button>
+        <button class="ftab" onclick="setFeedTab('following',this)">👥 Seguindo</button>
+        <button class="ftab" onclick="setFeedTab('campus',this)">🏫 Meu Campus</button>
+        <button class="ftab" onclick="setFeedTab('popular',this)">❤️ Populares</button>
+        <button class="ftab" onclick="setFeedTab('relevant',this)">🔥 Relevantes</button>
+      </div>
+      <div class="period-filter" id="period-filter" style="display:none">
+        <span style="font-size:12px;color:var(--t3);margin-right:4px;align-self:center">Período:</span>
+        <button class="period-btn on" onclick="setPeriodFilter('all',this)">Tudo</button>
+        <button class="period-btn" onclick="setPeriodFilter('month',this)">Mensal</button>
+        <button class="period-btn" onclick="setPeriodFilter('week',this)">Semanal</button>
+      </div>
+      <div class="cp" id="post-composer">
+        <div class="cp-top">
+          <div class="pav" id="cav">?</div>
+          <textarea class="pta" id="ptx" placeholder="O que está acontecendo no campus?"></textarea>
+        </div>
+        <!-- Preview de imagens (carrossel de até 4) -->
+        <div id="ppi-carousel" class="ppi-carousel" style="display:none"></div>
+        <!-- Preview de link OG -->
+        <div id="og-preview" class="og-card" style="display:none"></div>
+        <div class="cp-bot">
+          <label class="tb" for="iup">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Fotos (até 4)
+            <input type="file" id="iup" accept="image/*" multiple style="display:none" onchange="imgUp(event)">
+          </label>
+          <button class="btn btn-s" onclick="doPost()">Publicar</button>
+        </div>
+      </div>
+      <div id="feed"></div>
+    </div>
+
+    <!-- NOTICES -->
+    <div class="pg" id="pg-notices">
+      <div class="ptitle">📢 Avisos</div>
+      <div id="notices-composer" style="display:none" class="cp">
+        <div class="cp-top">
+          <div class="pav" id="ncav">?</div>
+          <textarea class="pta" id="ntx" placeholder="Digite um aviso institucional..."></textarea>
+        </div>
+        <div class="cp-bot">
+          <span style="font-size:12px;color:var(--t2)">📌 Aviso oficial</span>
+          <button class="btn btn-s btn-gold" onclick="doNotice()">Publicar Aviso</button>
+        </div>
+      </div>
+      <div id="notices-list"></div>
+    </div>
+
+    <!-- EXPLORE -->
+    <div class="pg" id="pg-explore">
+      <div class="ptitle">🔍 Explorar</div>
+      <div class="ftabs" id="explore-ftabs">
+        <button class="ftab on" onclick="setExploreFilter('all',this)">Todos</button>
+        <button class="ftab" onclick="setExploreFilter('campus',this)">Meu Campus</button>
+        <button class="ftab" onclick="setExploreFilter('professor',this)">Professores</button>
+      </div>
+      <div class="sb">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Nome ou @usuário..." id="si" oninput="srch()">
+      </div>
+      <div class="ug" id="ug"></div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="pg" id="pg-profile">
+      <div class="phc" id="my-profile-card"></div>
+      <!-- Abas do perfil -->
+      <div class="ftabs" style="margin-top:12px">
+        <button class="ftab on" onclick="setProfileTab('posts',this)" id="ptab-posts">📝 Posts</button>
+        <button class="ftab" onclick="setProfileTab('bookmarks',this)" id="ptab-bookmarks">🔖 Salvos</button>
+      </div>
+      <div id="myposts"></div>
+      <div id="my-bookmarks" style="display:none"></div>
+    </div>
+
+    <!-- CHAT -->
+    <div class="pg" id="pg-chat">
+      <div class="ptitle">💬 Mensagens</div>
+      <div class="ftabs" id="chat-ftabs">
+        <button class="ftab on" onclick="setChatTab('dm',this)">Diretas</button>
+        <button class="ftab" onclick="setChatTab('groups',this)">Grupos</button>
+      </div>
+      <div id="chl"></div>
+      <div id="groups-list" style="display:none"></div>
+      <div id="create-group-area" style="display:none;margin-top:10px">
+        <button class="btn btn-o btn-s" onclick="openModal('create-group-modal')">+ Criar Grupo</button>
+      </div>
+    </div>
+
+    <!-- RESUMOS -->
+    <div class="pg" id="pg-resumos">
+      <!-- Seção de PDF de horários no topo -->
+      <div id="horario-pdf-section" style="display:none"></div>
+      <div id="resumos-content"></div>
+    </div>
+
+    <!-- HORÁRIOS -->
+    <!-- LABORATÓRIOS -->
+    <div class="pg" id="pg-labs">
+      <div id="labs-admin-panel"></div>
+      <div id="labs-content"></div>
+    </div>
+
+    <div class="pg" id="pg-schedules">
+      <div class="ptitle">🗓️ Horários das Turmas</div>
+      <div id="schedules-admin-panel" style="display:none"></div>
+      <div id="schedules-content"></div>
+    </div>
+
+    <!-- ADMIN DB -->
+    <div class="pg" id="pg-admin-db">
+      <div id="admin-db-content"></div>
+    </div>
+
+    <!-- MODERATION -->
+    <div class="pg" id="pg-moderation">
+      <div class="ptitle">🛡️ Moderação</div>
+      <!-- Abas da moderação: posts bloqueados + denúncias de usuários -->
+      <div class="ftabs" id="mod-tabs" style="margin-bottom:14px">
+        <button class="ftab on" onclick="setModTab('posts',this)">📝 Conteúdo</button>
+        <button class="ftab" onclick="setModTab('users',this)">🚩 Denúncias</button>
+        <button class="ftab" onclick="setModTab('banned',this)">🔨 Banidos</button>
+      </div>
+      <!-- Aviso padrão editável -->
+      <div id="mod-posts-section">
+        <div style="background:var(--s2);border:1px solid var(--bd);border-radius:var(--rs);padding:12px;margin-bottom:14px">
+          <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:6px">📝 Texto padrão do aviso:</div>
+          <textarea id="mod-default-warn" class="fi" style="height:68px;resize:vertical;font-size:12px"
+            placeholder="Ex: Seu conteúdo foi bloqueado...">Seu conteúdo foi bloqueado automaticamente por violar as regras da comunidade IFConnect.</textarea>
+        </div>
+        <div id="mod-list"></div>
+      </div>
+      <!-- Denúncias de usuários -->
+      <div id="mod-users-section" style="display:none">
+        <div id="mod-user-reports"></div>
+      </div>
+      <!-- Usuários banidos -->
+      <div id="mod-banned-section" style="display:none">
+        <div id="mod-banned-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bnav">
+    <div class="bn on" id="bn-feed" onclick="go('feed')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Feed
+    </div>
+    <div class="bn" id="bn-notices" onclick="go('notices')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>Avisos
+    </div>
+    <div class="bn" id="bn-explore" onclick="go('explore')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Explorar
+    </div>
+    <div class="bn" id="bn-chat" onclick="go('chat')" style="position:relative">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Chat
+      <span class="bn-badge" id="bn-chat-badge" style="display:none">0</span>
+    </div>
+    <div class="bn" id="bn-profile" onclick="go('profile')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Perfil
+    </div>
+    <div class="bn" id="bn-resumos" onclick="go('resumos')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Resumos
+    </div>
+    <div class="bn" id="bn-labs" onclick="go('labs')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/></svg>Labs
+    </div>
+    <div class="bn" id="bn-schedules" onclick="go('schedules')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Horários
+    </div>
+    <div class="bn" id="bn-admin-db" onclick="go('admin-db')" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>Admin
+    </div>
+    <div class="bn" id="bn-moderation" onclick="go('moderation')" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Mod
+    </div>
+  </nav>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     PAINEL DE NOTIFICAÇÕES (Sininho)
+════════════════════════════════════════════════════════════ -->
+<div class="cw" id="notif-panel">
+  <div class="cwh">
+    <button class="cbk" onclick="closeNotifPanel()">←</button>
+    <div style="font-weight:600;font-size:15px">🔔 Notificações</div>
+    <button class="btn btn-o btn-s" style="margin-left:auto;font-size:11px" onclick="markAllNotifsRead()">Marcar tudo lido</button>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:14px" id="notif-list">
+    <div class="loading">⏳ Carregando...</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     DM CHAT WINDOW
+════════════════════════════════════════════════════════════ -->
+<div class="cw" id="cw">
+  <div class="cwh">
+    <button class="cbk" onclick="closeChat()">←</button>
+    <div class="chav" id="cwav" style="width:34px;height:34px;font-size:12px">?</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-weight:600;font-size:14px" id="cwn">-</div>
+      <div style="font-size:11px;color:var(--t3)" id="cw-role-badge"></div>
+      <!-- Status online / digitando -->
+      <div style="font-size:10px;color:var(--g)" id="cw-status"></div>
+    </div>
+  </div>
+  <div class="cms" id="cms"></div>
+  <div class="cib">
+    <input class="ci2" id="cmi" placeholder="Mensagem..." onkeydown="handleDmKeydown(event)" oninput="handleDmTyping()">
+    <button class="csnd" onclick="sndMsg()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+  </div>
+</div>
+
+<!-- GROUP CHAT WINDOW -->
+<div class="cw" id="gcw">
+  <div class="cwh">
+    <button class="cbk" onclick="closeGroupChat()">←</button>
+    <div class="gc-av" id="gcw-av" style="width:38px;height:38px;border-radius:10px;font-size:18px">👥</div>
+    <div class="gcw-header-info" onclick="openGroupDetail()">
+      <div style="font-weight:600;font-size:14px" id="gcwn">-</div>
+      <div style="font-size:11px;color:var(--t3)" id="gcw-members">Toque para ver detalhes</div>
+    </div>
+    <button class="nav-btn" onclick="openGroupDetail()" style="flex-shrink:0">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+    </button>
+  </div>
+  <div class="cms" id="gcms"></div>
+  <div class="cib">
+    <input class="ci2" id="gcmi" placeholder="Mensagem no grupo..." onkeydown="if(event.key==='Enter')sndGroupMsg()">
+    <button class="csnd" onclick="sndGroupMsg()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+  </div>
+</div>
+
+<!-- OTHER PROFILE PAGE (layout idêntico ao pg-profile) -->
+<div id="opw" style="display:none;position:fixed;inset:0;z-index:99;background:var(--bg);flex-direction:column;overflow:hidden">
+  <!-- Topo fixo idêntico ao nav principal -->
+  <div style="position:sticky;top:0;z-index:10;background:var(--su);border-bottom:1px solid var(--bd);height:58px;display:flex;align-items:center;gap:12px;padding:0 16px;box-shadow:var(--sh);flex-shrink:0">
+    <button onclick="closeOtherProfile()" style="background:none;border:none;cursor:pointer;color:var(--tx);font-size:20px;padding:4px;line-height:1;display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;transition:background .15s" onmouseenter="this.style.background='var(--s2)'" onmouseleave="this.style.background='none'">←</button>
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:17px" id="opw-header-name">Perfil</div>
+  </div>
+  <!-- Conteúdo scrollável — mesmo padding que .mc -->
+  <div style="flex:1;overflow-y:auto;padding:14px 14px 70px;max-width:600px;width:100%;margin:0 auto;box-sizing:border-box;-webkit-overflow-scrolling:touch" id="other-profile-content"></div>
+</div>
+
+<!-- GROUP DETAIL OVERLAY -->
+<div class="cw" id="group-detail-overlay" style="z-index:250">
+  <div class="cwh">
+    <button class="cbk" onclick="closeGroupDetail()">←</button>
+    <div style="font-weight:600;font-size:15px">Detalhes do grupo</div>
+    <div id="gd-edit-btn" style="display:none;margin-left:auto">
+      <button class="btn btn-s" onclick="populateEditGroupModal();openModal('edit-group-modal')">✏️ Editar</button>
+    </div>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:18px" id="group-detail-content"></div>
+  <div id="gd-add-member-section" style="display:none;padding:14px;border-top:1px solid var(--bd);background:var(--su)">
+    <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:6px">Adicionar membro ao grupo</div>
+    <input class="fi" id="gd-member-search" placeholder="@usuario ou nome..." oninput="searchAddGroupMember()" style="margin-bottom:6px">
+    <div id="gd-member-results"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MODAIS
+════════════════════════════════════════════════════════════ -->
+
+<!-- MODAL: Mudar Próprio Cargo -->
+<div class="modal-bg" id="role-change-modal">
+  <div class="modal">
+    <div class="modal-title">🔄 Mudar Cargo</div>
+    <div style="font-size:13px;color:var(--t2);margin-bottom:14px">Para elevar seu cargo é necessário um código de autorização.</div>
+    <div class="fg">
+      <label class="fl">Novo cargo</label>
+      <select class="fi" id="rc-new-role" onchange="onNewRoleChange()">
+        <option value="aluno">👤 Aluno (Discente)</option>
+        <option value="professor">🎓 Professor (Docente)</option>
+        <option value="admin">🛡️ Admin (Moderador)</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Senha atual</label><input class="fi" type="password" id="rc-password" placeholder="Confirme sua senha atual"></div>
+    <div class="role-code-box" id="rc-code-box">
+      <label class="fl" id="rc-code-label">🔐 Código de autorização</label>
+      <input class="fi" type="password" id="rc-code" placeholder="Código fornecido pela coordenação">
+    </div>
+    <div class="err" id="rc-err" style="display:none"></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn" onclick="saveRoleChange()">Confirmar</button>
+      <button class="btn btn-o" onclick="closeModal('role-change-modal')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Admin Mudar Cargo de Outro -->
+<div class="modal-bg" id="admin-role-modal">
+  <div class="modal">
+    <div class="modal-title">🛡️ Alterar Cargo do Usuário</div>
+    <div id="admin-role-user-info"></div>
+    <div class="fg">
+      <label class="fl">Novo cargo</label>
+      <select class="fi" id="admin-role-select">
+        <option value="aluno">👤 Aluno (Discente)</option>
+        <option value="professor">🎓 Professor (Docente)</option>
+        <option value="admin">🛡️ Admin (Moderador)</option>
+      </select>
+    </div>
+    <div class="warn-box" style="margin-top:8px">⚠️ Como admin, você pode mudar o cargo de qualquer usuário.</div>
+    <div class="err" id="admin-role-err" style="display:none"></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn" onclick="confirmAdminRoleChange()">Confirmar</button>
+      <button class="btn btn-o" onclick="closeModal('admin-role-modal')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Editar Grupo -->
+<div class="modal-bg" id="edit-group-modal">
+  <div class="modal">
+    <div class="modal-title">✏️ Editar Grupo</div>
+    <div class="fg">
+      <label class="fl">Foto do grupo</label>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+        <div id="eg-photo-preview" style="width:54px;height:54px;border-radius:12px;background:var(--purple);color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;overflow:hidden;border:2px solid var(--bd)">👥</div>
+        <label class="btn btn-o btn-s" style="cursor:pointer;margin-top:0">Alterar foto<input type="file" id="eg-photo-input" accept="image/*" style="display:none" onchange="previewEditGroupPhoto(event)"></label>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">Nome do grupo</label><input class="fi" type="text" id="eg-name" placeholder="Nome do grupo"></div>
+    <div class="fg"><label class="fl">Descrição</label><input class="fi" type="text" id="eg-desc" placeholder="Sobre este grupo..."></div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn" onclick="saveGroupEdit()">Salvar</button>
+      <button class="btn btn-o" onclick="closeModal('edit-group-modal')">Cancelar</button>
+    </div>
+    <div style="margin-top:12px;border-top:1px solid var(--bd);padding-top:12px">
+      <button class="btn-r" style="width:100%" onclick="leaveGroup()">🚪 Sair do grupo</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Criar Grupo -->
+<div class="modal-bg" id="create-group-modal">
+  <div class="modal">
+    <div class="modal-title">👥 Criar Grupo</div>
+    <div class="fg"><label class="fl">Nome do grupo</label><input class="fi" type="text" id="gname" placeholder="Ex: Turma INF 2024.1"></div>
+    <div class="fg">
+      <label class="fl">Foto do grupo</label>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+        <div id="group-photo-preview" style="width:54px;height:54px;border-radius:12px;background:var(--purple);color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;overflow:hidden;border:2px solid var(--bd)">👥</div>
+        <label class="btn btn-o btn-s" style="cursor:pointer;margin-top:0">Escolher foto<input type="file" id="group-photo-input" accept="image/*" style="display:none" onchange="previewGroupPhoto(event)"></label>
+        <button class="btn-r" onclick="clearGroupPhoto()" style="font-size:12px;padding:6px 10px">Remover</button>
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl">Adicionar membros</label>
+      <input class="fi" type="text" id="gmember-input" placeholder="@joaosilva" oninput="searchGroupMember()">
+      <div id="gmember-results" style="margin-top:6px"></div>
+    </div>
+    <div id="gmembers-selected" style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:6px"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="createGroup()">Criar</button>
+      <button class="btn btn-o" onclick="closeModal('create-group-modal')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Editar Perfil -->
+<div class="modal-bg" id="edit-profile-modal">
+  <div class="modal">
+    <div class="modal-title">✏️ Editar Perfil</div>
+    <div class="fg">
+      <label class="fl">Foto de perfil</label>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <div style="width:60px;height:60px;border-radius:50%;overflow:hidden;background:var(--g);border:2px solid var(--bd);flex-shrink:0" id="ep-avatar-preview"></div>
+        <label class="btn btn-o btn-s" style="cursor:pointer;margin-top:0">Alterar foto<input type="file" id="ep-photo" accept="image/*" style="display:none" onchange="previewProfilePhoto(event)"></label>
+      </div>
+    </div>
+    <!-- Banner de perfil (capa) -->
+    <div class="fg">
+      <label class="fl">🖼️ Banner do perfil (capa)</label>
+      <!-- Preview interativo do banner -->
+      <div id="ep-banner-live-preview" style="width:100%;height:80px;border-radius:10px;background:var(--s2);border:1.5px solid var(--bd);overflow:hidden;position:relative;margin-bottom:8px;cursor:pointer" onclick="document.getElementById('ep-banner-input').click()">
+        <img id="ep-banner-preview-img" src="" style="width:100%;height:100%;object-fit:cover;object-position:center;display:none" alt="">
+        <div id="ep-banner-color-fill" style="position:absolute;inset:0;display:none"></div>
+        <div id="ep-banner-placeholder" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:12px;flex-direction:column;gap:4px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          Clique para escolher capa
+        </div>
+      </div>
+      <!-- Modo de exibição -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap">
+        <span style="font-size:12px;color:var(--t2);font-weight:600">Modo:</span>
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
+          <input type="radio" name="banner-fit" id="banner-fit-cover" value="cover" checked onchange="onBannerFitChange(this.value)"> Ajustar/Recortar
+        </label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
+          <input type="radio" name="banner-fit" id="banner-fit-fill" value="fill" onchange="onBannerFitChange(this.value)"> Esticar
+        </label>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <label class="btn btn-o btn-s" style="cursor:pointer;margin-top:0;font-size:12px">
+          📷 Escolher imagem
+          <input type="file" id="ep-banner-input" accept="image/*" style="display:none" onchange="previewProfileBanner(event)">
+        </label>
+        <button class="btn-r" style="font-size:11px;padding:4px 8px" onclick="removeProfileBanner()">✕ Remover</button>
+      </div>
+      <div style="font-size:11px;color:var(--t3);margin-top:4px">Clique no preview para trocar. Max 10MB.</div>
+    </div>
+    <div class="fg"><label class="fl">Nome completo</label><input class="fi" type="text" id="ep-name" placeholder="Seu nome"></div>
+    <div class="fg">
+      <label class="fl">@usuário</label>
+      <input class="fi" type="text" id="ep-handle" placeholder="@usuario" oninput="checkHandleEdit()">
+      <div class="handle-check" id="hcheck-edit"></div>
+    </div>
+    <div class="fg"><label class="fl">Bio</label><input class="fi" type="text" id="ep-bio" placeholder="Conte algo sobre você..."></div>
+    <div class="fg">
+      <label class="fl">Campus IFPB</label>
+      <select class="fi" id="ep-campus"><option value="">Selecione...</option></select>
+    </div>
+    <div class="fg">
+      <label class="fl">Curso / Turma</label>
+      <select class="fi" id="ep-course"><option value="">Selecione...</option></select>
+    </div>
+    <div class="fg">
+      <label class="fl">Cor do banner (quando sem background)</label>
+      <input type="color" id="ep-banner-color" value="#00A859" style="width:100%;height:40px;border:none;border-radius:var(--rs);cursor:pointer">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn" onclick="saveProfile()">Salvar</button>
+      <button class="btn btn-o" onclick="closeModal('edit-profile-modal')">Cancelar</button>
+    </div>
+    <div style="margin-top:12px;border-top:1px solid var(--bd);padding-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-o btn-s" onclick="closeModal('edit-profile-modal');openModal('settings-modal')">⚙️ Configurações</button>
+      <button class="btn-r" onclick="confirmDeleteAccount()" style="flex:1">🗑️ Excluir conta</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CONFIGURAÇÕES DE PRIVACIDADE -->
+<div class="modal-bg" id="settings-modal">
+  <div class="modal">
+    <div class="modal-title">⚙️ Configurações e Privacidade</div>
+
+    <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Privacidade do Chat</div>
+
+    <div class="settings-row">
+      <div>
+        <div style="font-size:14px;font-weight:600">Visto por último</div>
+        <div style="font-size:12px;color:var(--t3)">Mostra quando você estava online. Se desligar, você também não verá o visto dos outros.</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="setting-last-seen" checked onchange="saveSetting('lastSeen',this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div class="settings-row">
+      <div>
+        <div style="font-size:14px;font-weight:600">Confirmação de leitura</div>
+        <div style="font-size:12px;color:var(--t3)">Mostra ✓✓ quando sua mensagem foi lida. Se desligar, você também não verá quando outros leram as suas.</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="setting-read-receipts" checked onchange="saveSetting('readReceipts',this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 10px">Perfil e Conteúdo</div>
+
+    <div class="settings-row">
+      <div>
+        <div style="font-size:14px;font-weight:600">Posts salvos públicos</div>
+        <div style="font-size:12px;color:var(--t3)">Permite que outros vejam seus bookmarks.</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="setting-public-bookmarks" onchange="saveSetting('publicBookmarks',this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div style="margin-top:18px;border-top:1px solid var(--bd);padding-top:14px">
+      <button class="btn btn-o btn-s" style="width:100%" onclick="closeModal('settings-modal');openModal('edit-profile-modal')">← Voltar ao perfil</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: DENUNCIAR USUÁRIO -->
+<div class="modal-bg" id="report-user-modal">
+  <div class="modal">
+    <div class="modal-title">🚩 Denunciar Usuário</div>
+    <div id="report-user-target-info" style="margin-bottom:14px"></div>
+    <div class="fg">
+      <label class="fl">Motivo da denúncia</label>
+      <select class="fi" id="report-reason">
+        <option value="">Selecione o motivo...</option>
+        <option value="foto_inapropriada">🖼️ Foto de perfil inapropriada</option>
+        <option value="assedio">😡 Assédio ou bullying</option>
+        <option value="spam">📨 Spam ou propaganda</option>
+        <option value="conteudo_adulto">🔞 Conteúdo adulto</option>
+        <option value="informacoes_falsas">❌ Informações falsas</option>
+        <option value="discurso_odio">💢 Discurso de ódio</option>
+        <option value="outros">📝 Outros</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label class="fl">Detalhe brevemente (opcional)</label>
+      <textarea class="fi" id="report-detail" placeholder="Descreva o problema em poucas palavras..." style="height:80px;resize:vertical"></textarea>
+    </div>
+    <div class="err" id="report-err" style="display:none"></div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn" onclick="submitUserReport()">Enviar Denúncia</button>
+      <button class="btn btn-o" onclick="closeModal('report-user-modal')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Editar Post -->
+<div class="modal-bg" id="edit-post-modal">
+  <div class="modal">
+    <div class="modal-title">✏️ Editar Post</div>
+    <input type="hidden" id="edit-post-id">
+    <textarea class="fi pta" id="edit-post-text" style="min-height:100px;resize:vertical"></textarea>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn" onclick="saveEditPost()">Salvar</button>
+      <button class="btn btn-o" onclick="closeModal('edit-post-modal')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Editar Comentário -->
+<div class="modal-bg" id="edit-comment-modal">
+  <div class="modal">
+    <div class="modal-title">✏️ Editar Comentário</div>
+    <input type="hidden" id="edit-comment-pid">
+    <input type="hidden" id="edit-comment-cid">
+    <textarea class="fi pta" id="edit-comment-text" style="min-height:80px;resize:vertical"></textarea>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn" onclick="saveEditComment()">Salvar</button>
+      <button class="btn btn-o" onclick="closeModal('edit-comment-modal')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Admin Panel -->
+<div class="modal-bg" id="admin-panel-modal">
+  <div class="modal">
+    <div class="modal-title">🛡️ Painel Admin</div>
+    <div id="admin-panel-content"></div>
+    <div style="margin-top:12px">
+      <button class="btn btn-o" onclick="closeModal('admin-panel-modal')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Punir usuário (admin) -->
+<div class="modal-bg" id="punish-user-modal">
+  <div class="modal">
+    <div class="modal-title">⚖️ Aplicar Punição</div>
+    <div id="punish-user-info" style="margin-bottom:14px"></div>
+    <input type="hidden" id="punish-uid">
+    <div class="fg">
+      <label class="fl">Tipo de punição</label>
+      <select class="fi" id="punish-type" onchange="onPunishTypeChange()">
+        <option value="ignore">✅ Ignorar (limpar denúncia)</option>
+        <option value="timeout_24h">⏰ Timeout 24 horas</option>
+        <option value="timeout_7d">⏰ Timeout 7 dias</option>
+        <option value="ban">🔨 Ban permanente</option>
+      </select>
+    </div>
+    <div class="fg" id="punish-msg-box">
+      <label class="fl">Mensagem ao usuário (opcional)</label>
+      <textarea class="fi" id="punish-msg" placeholder="Explique o motivo da punição..." style="height:72px;resize:vertical"></textarea>
+    </div>
+    <div class="err" id="punish-err" style="display:none"></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn" onclick="applyPunishment()">Aplicar</button>
+      <button class="btn btn-o" onclick="closeModal('punish-user-modal')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Recortar Banner de Perfil -->
+<div id="banner-crop-modal" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.85);align-items:center;justify-content:center;flex-direction:column;padding:16px">
+  <div style="background:var(--su);border-radius:var(--ra);width:100%;max-width:500px;overflow:hidden;box-shadow:var(--shl)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--bd)">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px">✂️ Ajustar Banner</div>
+      <button onclick="closeBannerCropModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--t2)">✕</button>
+    </div>
+    <div style="max-height:320px;overflow:hidden;background:#111;display:flex;align-items:center;justify-content:center">
+      <img id="banner-crop-img" src="" style="max-width:100%;display:block" alt="">
+    </div>
+    <div style="padding:14px 18px;border-top:1px solid var(--bd)">
+      <div style="font-size:12px;color:var(--t3);margin-bottom:10px">Arraste a área de seleção para recortar. A proporção segue o modo escolhido (Ajustar = 3:1, Esticar = livre).</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" onclick="applyBannerCrop()" style="flex:1">✅ Aplicar recorte</button>
+        <button class="btn btn-o" onclick="closeBannerCropModal()" style="width:auto;padding:12px 16px">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Adicionar Laboratório (admin) -->
+<div class="modal-bg" id="add-lab-modal">
+  <div class="modal">
+    <div class="modal-title">🔬 Novo Laboratório</div>
+    <div class="fg"><label class="fl">Nome do laboratório <span style="color:var(--r)">*</span></label><input class="fi" type="text" id="lab-nome" placeholder="Ex: Laboratório de Informática 1"></div>
+    <div class="fg"><label class="fl">Localização</label><input class="fi" type="text" id="lab-local" placeholder="Ex: Bloco B, Sala 12"></div>
+    <div class="fg"><label class="fl">Capacidade (pessoas)</label><input class="fi" type="number" id="lab-cap" placeholder="Ex: 30" min="1"></div>
+    <div class="fg"><label class="fl">Descrição / equipamentos</label><textarea class="fi pta" id="lab-desc" placeholder="Descreva os recursos disponíveis..." style="min-height:68px;resize:vertical"></textarea></div>
+    <div class="fg">
+      <label class="fl">Foto do laboratório (opcional)</label>
+      <label class="tb" style="cursor:pointer;display:inline-flex;gap:5px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        Escolher foto
+        <input type="file" id="lab-img-input" accept="image/*" style="display:none" onchange="previewLabImg(event)">
+      </label>
+      <div id="lab-img-preview" style="margin-top:8px"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn" onclick="saveLab()">✅ Salvar</button>
+      <button class="btn btn-o" onclick="closeModal('add-lab-modal')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Registrar Uso de Laboratório -->
+<div class="modal-bg" id="reg-uso-modal">
+  <div class="modal">
+    <div class="modal-title">📝 Registrar Uso de Laboratório</div>
+    <div class="fg">
+      <label class="fl">Laboratório <span style="color:var(--r)">*</span></label>
+      <select class="fi" id="reg-uso-lab-select" onclick="if(!this.options.length||this.options[0].value==='')populateRegUsoModal()">
+        <option value="">Toque para carregar labs...</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label class="fl">⏱️ Tempo de uso <span style="color:var(--r)">*</span></label>
+      <select class="fi" id="reg-uso-duracao">
+        <option value="">Selecione a duração...</option>
+        <option value="30">30 minutos</option>
+        <option value="60">1 hora</option>
+        <option value="90">1h 30min</option>
+        <option value="120">2 horas</option>
+        <option value="180">3 horas</option>
+        <option value="240">4 horas</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Turma / Disciplina</label><input class="fi" type="text" id="reg-uso-turma" placeholder="Ex: INF 2024.1 — Banco de Dados"></div>
+    <div class="fg"><label class="fl">Descrição do uso <span style="color:var(--r)">*</span></label><textarea class="fi pta" id="reg-uso-desc" placeholder="Ex: Prática de redes, aula de robótica, projeto..." style="min-height:72px;resize:vertical"></textarea></div>
+    <div id="reg-uso-ocupado-warn" style="display:none;background:#fff3cd;border:1px solid #ffc107;border-radius:var(--rs);padding:10px 12px;margin-bottom:10px;font-size:13px;color:#856404;line-height:1.5"></div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn" onclick="saveLabUso()">✅ Registrar</button>
+      <button class="btn btn-o" onclick="closeModal('reg-uso-modal')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Timer de uso ativo do lab -->
+<div class="modal-bg" id="lab-timer-modal">
+  <div class="modal" style="text-align:center">
+    <div style="font-size:36px;margin-bottom:6px">🔬</div>
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:17px;margin-bottom:2px" id="lab-timer-nome">Laboratório</div>
+    <div style="font-size:12px;color:var(--t3);margin-bottom:18px" id="lab-timer-desc"></div>
+    <div class="lab-timer-ring">
+      <svg viewBox="0 0 120 120" width="120" height="120">
+        <circle cx="60" cy="60" r="52" fill="none" stroke="var(--bd)" stroke-width="8"/>
+        <circle id="lab-timer-arc" cx="60" cy="60" r="52" fill="none" stroke="var(--g)" stroke-width="8"
+          stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="0"
+          transform="rotate(-90 60 60)" style="transition:stroke-dashoffset .9s linear,stroke .5s"/>
+      </svg>
+      <div class="lab-timer-inner">
+        <div id="lab-timer-display" style="font-family:'Syne',sans-serif;font-weight:800;font-size:26px;line-height:1">00:00</div>
+        <div style="font-size:10px;color:var(--t3);margin-top:2px">restante</div>
+      </div>
+    </div>
+    <div id="lab-timer-saida" style="font-size:12px;color:var(--t2);margin:10px 0 4px"></div>
+    <!-- Fila de espera -->
+    <div id="lab-timer-fila-section" style="margin-top:14px;text-align:left;border-top:1px solid var(--bd);padding-top:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">👥 Fila de espera</div>
+      <div id="lab-timer-fila-list" style="font-size:13px;color:var(--t2)">Ninguém na fila.</div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:8px">
+      <button class="btn btn-o" onclick="closeModal('lab-timer-modal')" style="flex:1">Fechar</button>
+      <button class="btn btn-r" id="lab-timer-sair-btn" onclick="sairDoLab()" style="flex:1">🚪 Encerrar uso</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Fila de espera do lab -->
+<div class="modal-bg" id="lab-fila-modal">
+  <div class="modal" style="text-align:center">
+    <div style="font-size:32px;margin-bottom:6px">⏳</div>
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:17px;margin-bottom:4px" id="lab-fila-nome">Laboratório</div>
+    <div style="font-size:13px;color:var(--t2);margin-bottom:6px" id="lab-fila-status-info"></div>
+    <div style="font-size:12px;color:var(--t3);margin-bottom:16px" id="lab-fila-pos-info"></div>
+    <div id="lab-fila-list-section" style="text-align:left;border-top:1px solid var(--bd);padding-top:12px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Fila atual</div>
+      <div id="lab-fila-list"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-o" onclick="closeModal('lab-fila-modal')" style="flex:1">Fechar</button>
+      <button class="btn btn-r" id="lab-fila-sair-btn" onclick="sairDaFila()" style="flex:1;display:none">❌ Sair da fila</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Todos os registros de uso de um lab -->
+<div class="modal-bg" id="all-usos-modal">
+  <div class="modal" style="max-height:85vh;overflow-y:auto">
+    <div class="modal-title" id="all-usos-title">📋 Registros</div>
+    <div id="all-usos-content"></div>
+    <div style="margin-top:14px">
+      <button class="btn btn-o" onclick="closeModal('all-usos-modal')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Denunciar Post -->
+<div class="modal-bg" id="report-post-modal">
+  <div class="modal">
+    <div class="modal-title">🚩 Denunciar Post</div>
+    <div id="report-post-target-info" style="margin-bottom:14px"></div>
+    <div class="fg">
+      <label class="fl">Motivo da denúncia</label>
+      <select class="fi" id="report-post-reason">
+        <option value="">Selecione o motivo...</option>
+        <option value="conteudo_ofensivo">😡 Conteúdo ofensivo ou assédio</option>
+        <option value="spam">📨 Spam ou propaganda</option>
+        <option value="conteudo_adulto">🔞 Conteúdo adulto</option>
+        <option value="informacoes_falsas">❌ Informações falsas</option>
+        <option value="discurso_odio">💢 Discurso de ódio</option>
+        <option value="outros">📝 Outros</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label class="fl">Detalhes (opcional)</label>
+      <textarea class="fi" id="report-post-detail" placeholder="Descreva o problema em poucas palavras..." style="height:72px;resize:vertical"></textarea>
+    </div>
+    <div class="err" id="report-post-err" style="display:none"></div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn" onclick="submitPostReport()">Enviar Denúncia</button>
+      <button class="btn btn-o" onclick="closeModal('report-post-modal')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Completar perfil (login Google - novo usuário) -->
+<div class="modal-bg" id="google-profile-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-title">🎓 Complete seu perfil</div>
+    <div style="font-size:13px;color:var(--t2);margin-bottom:16px">Só mais algumas informações para configurar sua conta IFConnect.</div>
+    <div class="fg">
+      <label class="fl">@usuário <span style="color:var(--r)">*</span></label>
+      <input class="fi" type="text" id="g-handle" placeholder="joaosilva" oninput="checkHandleGoogle()">
+      <div class="handle-check" id="g-hcheck"></div>
+    </div>
+    <div class="fg">
+      <label class="fl">Campus IFPB <span style="color:var(--r)">*</span></label>
+      <select class="fi" id="g-campus"><option value="">Selecione seu campus...</option></select>
+    </div>
+    <div class="fg">
+      <label class="fl">Curso / Turma</label>
+      <select class="fi" id="g-course"><option value="">Selecione seu curso...</option></select>
+    </div>
+    <div class="fg">
+      <label class="fl">Cargo</label>
+      <select class="fi" id="g-role" onchange="onGoogleRoleChange()">
+        <option value="aluno">Aluno (Discente)</option>
+        <option value="professor">Professor (Docente)</option>
+        <option value="admin">Admin (Moderador)</option>
+      </select>
+    </div>
+    <div class="role-code-box" id="g-role-code-box" style="display:none">
+      <label class="fl" id="g-role-code-label">🔐 Código de autorização</label>
+      <input class="fi" type="password" id="g-rcode" placeholder="Insira o código de acesso">
+    </div>
+    <div class="err" id="g-err" style="display:none;margin-bottom:10px"></div>
+    <button class="btn" onclick="saveGoogleProfile()">Salvar e entrar</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
